@@ -23,18 +23,19 @@ def schema_factory(
     schema_cls: Type[T], pk_field_name: str = "id", name: str = "Create"
 ) -> Type[T]:
     """
-    Is used to create a CreateSchema which does not contain pk
+    Creates a CreateSchema which does not contain the primary key field.
     """
 
     fields = {
-        f.name: (f.type_, ...)
-        for f in schema_cls.__fields__.values()
-        if f.name != pk_field_name
+        field_name: (field.annotation, ...)
+        for field_name, field in schema_cls.model_fields.items()
+        if field_name != pk_field_name
     }
 
     name = schema_cls.__name__ + name
     schema: Type[T] = create_model(__model_name=name, **fields)  # type: ignore
     return schema
+
 
 
 def create_query_validation_exception(field: str, msg: str) -> HTTPException:
