@@ -26,11 +26,47 @@ CALLABLE_LIST = Callable[..., List[Model]]
 
 
 class SQLAlchemyCRUDRouter(CRUDGenerator[SCHEMA]):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        schema: Type[SCHEMA],
+        db_model: Model,
+        db: "Session",
+        create_schema: Optional[Type[SCHEMA]] = None,
+        update_schema: Optional[Type[SCHEMA]] = None,
+        prefix: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        paginate: Optional[int] = None,
+        get_all_route: Union[bool, DEPENDENCIES] = True,
+        get_one_route: Union[bool, DEPENDENCIES] = True,
+        create_route: Union[bool, DEPENDENCIES] = True,
+        update_route: Union[bool, DEPENDENCIES] = True,
+        delete_one_route: Union[bool, DEPENDENCIES] = True,
+        delete_all_route: Union[bool, DEPENDENCIES] = True,
+        **kwargs: Any
+    ) -> None:
         assert sqlalchemy_installed, "SQLAlchemy must be installed to use the SQLAlchemyCRUDRouter."
-        super().__init__(*args, **kwargs)
-        self._pk: str = self.db_model.__table__.primary_key.columns.keys()[0]
-        self._pk_type: type = _utils.get_pk_type(self.schema, self._pk)
+
+        self.db_model = db_model
+        self.db_func = db
+        self._pk: str = db_model.__table__.primary_key.columns.keys()[0]
+        self._pk_type: type = _utils.get_pk_type(schema, self._pk)
+
+        # Pass only the expected arguments to CRUDGenerator
+        super().__init__(
+            schema=schema,
+            create_schema=create_schema,
+            update_schema=update_schema,
+            prefix=prefix or db_model.__tablename__,
+            tags=tags,
+            paginate=paginate,
+            get_all_route=get_all_route,
+            get_one_route=get_one_route,
+            create_route=create_route,
+            update_route=update_route,
+            delete_one_route=delete_one_route,
+            delete_all_route=delete_all_route,
+            **kwargs
+        )
 
     def _get_all(self, *args: Any, **kwargs: Any) -> CALLABLE_LIST:
         async def route(
