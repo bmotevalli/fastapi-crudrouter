@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Type, Generator, Optional, Union
 import inspect
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -110,10 +110,10 @@ class SQLAlchemyCRUDRouter(CRUDGenerator[SCHEMA]):
 
     def _create(self, *args: Any, **kwargs: Any) -> CALLABLE:
         async def route(
-            model: self.create_schema, db: Union[Session, AsyncSession] = Depends(self.db_func)
+            model: self.create_schema = Body(...), db: Union[Session, AsyncSession] = Depends(self.db_func)
         ) -> Model:
             try:
-                db_model: Model = self.db_model(**model.dict())
+                db_model: Model = self.db_model(**model.model_dump())
                 db.add(db_model)
                 if isinstance(db, AsyncSession):
                     await db.commit()
@@ -134,12 +134,12 @@ class SQLAlchemyCRUDRouter(CRUDGenerator[SCHEMA]):
     def _update(self, *args: Any, **kwargs: Any) -> CALLABLE:
         async def route(
             item_id: self._pk_type,
-            model: self.update_schema,
+            model: self.update_schema = Body(...),
             db: Union[Session, AsyncSession] = Depends(self.db_func),
         ) -> Model:
             db_model: Model = await self._get_one()(item_id, db)
 
-            for key, value in model.dict(exclude={self._pk}).items():
+            for key, value in model.model_dump(exclude={self._pk}).items():
                 if hasattr(db_model, key):
                     setattr(db_model, key, value)
 
